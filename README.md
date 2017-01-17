@@ -4,7 +4,7 @@ I2C Bus Library for Swift
 
 ## Supported Platform
 
-* [I2C tiny USB](https://github.com/novi/i2c_tiny_usb) adapter (Mac)
+* [I2C tiny USB](https://github.com/novi/i2c_tiny_usb) adapter (Mac, Linux)
 * I2C Kernel device (/dev/i2c-*) (Linux, Raspberry Pi etc...)
 
 ## Building
@@ -38,11 +38,12 @@ readData.count == 5 // true
 
 ```
 
-| Platform | Bus connection |   Driver   |      Class     |
-|----------|----------------|------------|----------------|
-|  macOS   |  I2C tiny USB  |   libusb   | `I2CTinyUSB`   |
-|  Linux   |  I2C tiny USB  | /dev/i2c-* | `I2CBusDevice` | 
-|  Linux   | Native I2C bus | /dev/i2c-* | `I2CBusDevice` |  
+| Platform |      Bus connection      |    Driver    |      Class     |
+|----------|--------------------------|--------------|----------------|
+|  macOS   | I2C tiny USB             |    libusb    | `I2CTinyUSB`   |
+|  Linux   | I2C tiny USB             |    libusb    | not supported, use `/dev/i2c-*`   |
+|  Linux   | I2C tiny USB             | `/dev/i2c-*` | `I2CBusDevice` | 
+|  Linux   | Native I2C bus (on GPIO) | `/dev/i2c-*` | `I2CBusDevice` |  
 
 See [demo project](https://github.com/novi/i2c-swift-example) for every platform.
 
