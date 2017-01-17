@@ -38,10 +38,11 @@ readData.count == 5 // true
 
 ```
 
-Platform | Bus connection |   Driver   |   Class  
- macOS   |  I2C tiny USB  |   libusb   | `I2CTinyUSB`  
- Linux   |  I2C tiny USB  | /dev/i2c-* | `I2CBusDevice`  
- Linux   | Native I2C bus | /dev/i2c-* | `I2CBusDevice`  
+| Platform | Bus connection |   Driver   |      Class     |
+|----------|----------------|------------|----------------|
+|  macOS   |  I2C tiny USB  |   libusb   | `I2CTinyUSB`   |
+|  Linux   |  I2C tiny USB  | /dev/i2c-* | `I2CBusDevice` | 
+|  Linux   | Native I2C bus | /dev/i2c-* | `I2CBusDevice` |  
 
 See [demo project](https://github.com/novi/i2c-swift-example) for every platform.
 
