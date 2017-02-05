@@ -55,10 +55,6 @@ import Foundation
             close(i2c)
         }
         
-        private func setBufferPtr(msg: UnsafeMutablePointer<i2c_msg>, buf: UnsafeMutablePointer<Int8>) {
-            msg.pointee.buf = buf
-        }
-        
         public func write(toAddress: UInt8, data: [UInt8], readBytes: UInt32) throws -> [UInt8] {
             
             // send only start, stop
@@ -86,22 +82,28 @@ import Foundation
             var messages = [i2c_msg](repeating: i2c_msg(), count: messageLength)
             
             if writeLength > 0 {
-                var writeBuf = unsafeBitCast(data, to: [Int8].self)
+                let writePtr = UnsafeMutableRawPointer.allocate(bytes: Int(data.count), alignedTo: MemoryLayout<Int8>.alignment)
+                var indexW = 0
+                let writeBuf = writePtr.bindMemory(to: UInt8.self, capacity: data.count)
+                for d in data {
+                    writeBuf[indexW] = d
+                    indexW += 1
+                }
                 messages[messageIndex].addr = UInt16(toAddress)
                 messages[messageIndex].flags = 0 // Write mode
                 messages[messageIndex].len = Int16(data.count)
-                setBufferPtr(msg: &messages[messageIndex], buf: &writeBuf)
+                messages[messageIndex].buf = writePtr.assumingMemoryBound(to: Int8.self)
                 
                 messageIndex += 1
             }
             
-            var readBuf: [Int8]?
+            var readPtr: UnsafeMutableRawPointer? = nil
             if readBytes > 0 {
-                readBuf = [Int8](repeating: 0, count: Int(readBytes))
+                readPtr = UnsafeMutableRawPointer.allocate(bytes: Int(readBytes), alignedTo: MemoryLayout<Int8>.alignment)
                 messages[messageIndex].addr = UInt16(toAddress)
                 messages[messageIndex].flags = UInt16(I2C_M_RD)
                 messages[messageIndex].len = Int16(readBytes)
-                setBufferPtr(msg: &messages[messageIndex], buf: &readBuf!)
+                messages[messageIndex].buf = readPtr!.assumingMemoryBound(to: Int8.self)
             }
             
             //print("writing...", messages)
@@ -112,8 +114,9 @@ import Foundation
                 throw I2CError.readOrWriteError(status, errno)
             }
             
-            if let buf = readBuf {
-                return unsafeBitCast(buf, to: [UInt8].self)
+            if let buf = readPtr {
+                let bptr = UnsafeBufferPointer(start: buf.assumingMemoryBound(to: UInt8.self), count: Int(readBytes))
+                return Array(bptr)
             }
             return []
         }
