@@ -81,18 +81,23 @@ import Foundation
             var messageIndex = 0
             var messages = [i2c_msg](repeating: i2c_msg(), count: messageLength)
             
+            var writePtr: UnsafeMutableRawPointer? = nil
             if writeLength > 0 {
-                let writePtr = UnsafeMutableRawPointer.allocate(bytes: Int(data.count), alignedTo: MemoryLayout<Int8>.alignment)
+                writePtr = UnsafeMutableRawPointer.allocate(bytes: Int(data.count), alignedTo: MemoryLayout<Int8>.alignment)
+                //defer {
+                //    writePtr.deallocate(bytes: Int(data.count), alignedTo: MemoryLayout<Int8>.alignment)
+                //}
                 var indexW = 0
-                let writeBuf = writePtr.bindMemory(to: UInt8.self, capacity: data.count)
+                let writeBuf = writePtr!.bindMemory(to: UInt8.self, capacity: data.count)
                 for d in data {
                     writeBuf[indexW] = d
                     indexW += 1
                 }
+                
                 messages[messageIndex].addr = UInt16(toAddress)
                 messages[messageIndex].flags = 0 // Write mode
                 messages[messageIndex].len = Int16(data.count)
-                messages[messageIndex].buf = writePtr.assumingMemoryBound(to: Int8.self)
+                messages[messageIndex].buf = writePtr!.assumingMemoryBound(to: Int8.self)
                 
                 messageIndex += 1
             }
@@ -106,17 +111,21 @@ import Foundation
                 messages[messageIndex].buf = readPtr!.assumingMemoryBound(to: Int8.self)
             }
             
-            //print("writing...", messages)
-            
             var packets = i2c_rdwr_ioctl_data(msgs: &messages, nmsgs: UInt32(messages.count))
             let status = ioctl(i2c, UInt(I2C_RDWR), &packets)
             guard status >= 0 else {
                 throw I2CError.readOrWriteError(status, errno)
             }
             
-            if let buf = readPtr {
-                let bptr = UnsafeBufferPointer(start: buf.assumingMemoryBound(to: UInt8.self), count: Int(readBytes))
-                return Array(bptr)
+            if let ptr = writePtr {
+                ptr.deallocate(bytes: Int(data.count), alignedTo: MemoryLayout<Int8>.alignment)
+            }
+            
+            if let ptr = readPtr {
+                let bbuf = UnsafeBufferPointer(start: ptr.assumingMemoryBound(to: UInt8.self), count: Int(readBytes))
+                let arr = Array(bbuf)
+                ptr.deallocate(bytes: Int(readBytes), alignedTo: MemoryLayout<Int8>.alignment)
+                return arr
             }
             return []
         }
